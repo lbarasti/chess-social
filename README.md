@@ -1,35 +1,58 @@
-# Chess Tournament Tracker
+# XMAS Molesto Chess
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A chess tournament tracker for the XMAS Molesto double round-robin tournament (4 players).
 
-## Getting Started
+## Features
 
-First, run the development server:
+- **Live Standings**: Automatically calculated rankings with points, wins, draws, and losses.
+- **Match Management**: Interactive match list to set results (`1-0`, `½-½`, `0-1`) and attach Lichess game URLs.
+- **Player Integration**: Direct links to Lichess profiles and "Challenge" shortcuts (`⚔️`) to start games immediately.
+- **Optimistic UI**: Instant feedback on updates with server synchronization.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router, React 19)
+- **Styling**: Tailwind CSS v4
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Fly.io
+
+## Setup
+
+### Prerequisites
+- Node.js 18+
+- A Supabase project
+
+### Installation
+
+1. **Clone & Install**
+   ```bash
+   git clone <repo-url>
+   cd xmas-molesto
+   npm install
+   ```
+
+2. **Environment Variables**
+   Create `.env.local`:
+   ```env
+   SUPABASE_URL=your_project_url
+   SUPABASE_SERVICE_KEY=your_service_role_key
+   ```
+
+3. **Database**
+   Run the contents of `schema.sql` in your Supabase SQL Editor to create tables, policies, and seed initial data.
+
+4. **Run**
+   ```bash
+   npm run dev
+   ```
+   Visit `http://localhost:3000`.
+
+## Deployment
+
+Deploy to Fly.io:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+fly launch # Initial setup
+fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_KEY=...
+fly deploy
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Deployment on Fly.io
-
-This project is configured for deployment on [Fly.io](https://fly.io).
-
-1.  Install flyctl (if not installed).
-2.  Login: `fly auth login`.
-3.  Launch the app:
-    ```bash
-    fly launch
-    ```
-    This will detect the `Dockerfile` and configure the app.
-4.  Deploy updates:
-    ```bash
-    fly deploy
-    ```

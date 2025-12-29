@@ -12,7 +12,6 @@ export type Match = {
   black: string; // player id
   result: MatchResult;
   gameLink?: string; // Optional link to the game
-  round?: number;
 };
 
 export type Database = {
