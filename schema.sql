@@ -19,7 +19,7 @@ create table if not exists tournaments (
 
 create table if not exists matches (
   id text primary key,
-  tournament_id uuid not null references tournaments(id),
+  tournament_id uuid not null references tournaments(id) on delete cascade,
   white text references players(id),
   black text references players(id),
   result text, -- '1-0', '0-1', '0.5-0.5' or null

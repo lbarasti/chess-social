@@ -246,3 +246,37 @@ export async function updateMatch(
     gameLink: data.game_link,
   } as Match;
 }
+
+export async function deleteTournament(id: string, creatorId: string): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Database not available' };
+  }
+
+  // Verify the tournament exists and belongs to the creator
+  const { data: tournament, error: fetchError } = await supabase
+    .from('tournaments')
+    .select('creator_id')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !tournament) {
+    return { success: false, error: 'Tournament not found' };
+  }
+
+  if (tournament.creator_id !== creatorId) {
+    return { success: false, error: 'Not authorized to delete this tournament' };
+  }
+
+  // Delete the tournament (matches cascade automatically)
+  const { error: tournamentError } = await supabase
+    .from('tournaments')
+    .delete()
+    .eq('id', id);
+
+  if (tournamentError) {
+    console.error('Error deleting tournament:', tournamentError);
+    return { success: false, error: 'Failed to delete tournament' };
+  }
+
+  return { success: true };
+}

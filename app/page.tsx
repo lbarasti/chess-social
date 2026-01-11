@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import { Tournament } from '@/app/lib/types';
 import { useAuth } from '@/app/components/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -27,6 +29,40 @@ export default function Home() {
     };
     fetchTournaments();
   }, []);
+
+  const handleDelete = async (e: React.MouseEvent, tournamentId: string, tournamentName: string) => {
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to delete "${tournamentName}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(tournamentId);
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        alert('You must be logged in to delete a tournament');
+        return;
+      }
+
+      const res = await fetch(`/api/tournaments/${tournamentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete tournament');
+      }
+
+      setTournaments(tournaments.filter(t => t.id !== tournamentId));
+    } catch (error) {
+      console.error('Failed to delete tournament', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete tournament');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading tournaments...</div>;
@@ -56,21 +92,39 @@ export default function Home() {
                 onClick={() => router.push(`/tournaments/${tournament.id}`)}
                 className="cursor-pointer bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
               >
-                <h3 className="font-semibold text-lg">{tournament.name}</h3>
-                <p className="text-sm text-zinc-500">
-                  Created {new Date(tournament.createdAt).toLocaleDateString()}
-                  {tournament.creatorId && (
-                    <> by <a
-                      href={`https://lichess.org/@/${tournament.creatorId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-zinc-700 dark:hover:text-zinc-300"
-                      onClick={(e) => e.stopPropagation()}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{tournament.name}</h3>
+                    <p className="text-sm text-zinc-500">
+                      Created {new Date(tournament.createdAt).toLocaleDateString()}
+                      {tournament.creatorId && (
+                        <> by <a
+                          href={`https://lichess.org/@/${tournament.creatorId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-zinc-700 dark:hover:text-zinc-300"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tournament.creatorId}
+                        </a></>
+                      )}
+                    </p>
+                  </div>
+                  {user?.id === tournament.creatorId && (
+                    <button
+                      onClick={(e) => handleDelete(e, tournament.id, tournament.name)}
+                      disabled={deleting === tournament.id}
+                      className="p-2 text-zinc-400 hover:text-red-500 disabled:opacity-50"
+                      title="Delete tournament"
                     >
-                      {tournament.creatorId}
-                    </a></>
+                      {deleting === tournament.id ? (
+                        <span className="text-sm">...</span>
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
+                    </button>
                   )}
-                </p>
+                </div>
               </div>
             ))}
           </div>
