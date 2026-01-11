@@ -25,3 +25,10 @@ export type TournamentWithMatches = Tournament & {
   players: Player[];
   matches: Match[];
 };
+
+// Lichess OAuth types
+export type LichessUser = {
+  id: string;
+  username: string;
+  perfs?: Record<string, unknown>;
+};

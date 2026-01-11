@@ -1,6 +1,6 @@
-# XMAS Molesto Chess
+# Chess social
 
-A chess tournament tracker for the XMAS Molesto double round-robin tournament (4 players).
+A chess tournament manager to organise and manage multi-round round-robin tournaments (up to 20 players).
 
 ## Features
 
@@ -27,7 +27,7 @@ A chess tournament tracker for the XMAS Molesto double round-robin tournament (4
 1. **Clone & Install**
    ```bash
    git clone <repo-url>
-   cd xmas-molesto
+   cd chess-social
    npm install
    ```
 

@@ -122,7 +122,7 @@ export default function NewTournamentPage() {
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="e.g. XMAS Molesto 2025"
+            placeholder="e.g. Winter tournament"
             className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
           />
         </div>

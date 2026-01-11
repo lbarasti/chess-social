@@ -29,16 +29,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-8 max-w-3xl mx-auto space-y-12 pb-20 font-[family-name:var(--font-geist-sans)]">
-      <header className="text-center space-y-4 pt-8">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          XMAS Molesto Chess
-        </h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Chess Tournament Tracker
-        </p>
-      </header>
-
+    <div className="min-h-screen p-4 sm:p-8 max-w-3xl mx-auto space-y-8 pb-20 font-(family-name:--font-geist-sans)">
       <section className="space-y-6">
         <div className="flex justify-between items-center px-1">
           <h2 className="text-2xl font-bold">Tournaments</h2>

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./components/Providers";
+import { Header } from "./components/Header";
+import { APP_NAME } from "./lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chess Tournament Tracker",
+  title: APP_NAME,
   description: "Track chess match results in a tournament",
 };
 
@@ -27,7 +30,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          <Header />
+          <main>
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

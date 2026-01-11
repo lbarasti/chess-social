@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-XMAS Molesto Chess is a chess tournament tracker for a double round-robin tournament with 4 players. It provides live standings, match management with result tracking, and Lichess integration.
+Chess social is a chess tournament manager for multi-round round-robin tournaments with up to 20 players. It provides live standings, match management with result tracking, and Lichess integration.
 
 ## Tech Stack
 
