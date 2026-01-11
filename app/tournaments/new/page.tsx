@@ -25,7 +25,10 @@ export default function NewTournamentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const MAX_PLAYERS = 20;
+
   const addPlayer = () => {
+    if (players.length >= MAX_PLAYERS) return;
     setPlayers([...players, { name: '', lichessUsername: '' }]);
   };
 
@@ -56,6 +59,11 @@ export default function NewTournamentPage() {
     const validPlayers = players.filter(p => p.name.trim() && p.lichessUsername.trim());
     if (validPlayers.length < 2) {
       setError('At least 2 players with name and Lichess username are required');
+      return;
+    }
+
+    if (validPlayers.length > MAX_PLAYERS) {
+      setError(`Maximum ${MAX_PLAYERS} players allowed`);
       return;
     }
 
@@ -141,7 +149,7 @@ export default function NewTournamentPage() {
             id="rounds"
             type="number"
             min={1}
-            max={10}
+            max={4}
             value={rounds}
             onChange={e => setRounds(parseInt(e.target.value) || 1)}
             className="w-24 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
@@ -205,7 +213,7 @@ function PlayerInputRow({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchSuggestions = async (term: string) => {
     if (term.length < 2) {

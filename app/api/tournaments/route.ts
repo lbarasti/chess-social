@@ -19,12 +19,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only round-robin tournaments are supported' }, { status: 400 });
     }
 
-    if (!rounds || rounds < 1 || rounds > 10) {
-      return NextResponse.json({ error: 'Rounds must be between 1 and 10' }, { status: 400 });
+    if (!rounds || rounds < 1 || rounds > 4) {
+      return NextResponse.json({ error: 'Rounds must be between 1 and 4' }, { status: 400 });
     }
 
     if (!Array.isArray(players) || players.length < 2) {
       return NextResponse.json({ error: 'At least 2 players are required' }, { status: 400 });
+    }
+
+    if (players.length > 20) {
+      return NextResponse.json({ error: 'Maximum 20 players allowed' }, { status: 400 });
     }
 
     for (const player of players) {
