@@ -10,29 +10,6 @@ export const supabase = (typeof window === 'undefined' && supabaseUrl && supabas
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-export async function getPlayers(): Promise<Player[]> {
-  if (!supabase) {
-    console.error('Supabase credentials missing on server');
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('players')
-    .select('*')
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching players:', error);
-    return [];
-  }
-
-  return (data || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    lichessUrl: p.lichess_url,
-  }));
-}
-
 export async function getTournaments(): Promise<Tournament[]> {
   if (!supabase) {
     console.error('Supabase credentials missing on server');

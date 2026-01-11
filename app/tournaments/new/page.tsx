@@ -3,11 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Player } from '@/app/lib/types';
 
 interface PlayerInput {
   name: string;
   lichessUsername: string;
+}
+
+interface LichessPlayer {
+  id: string;
+  name: string;
 }
 
 export default function NewTournamentPage() {
@@ -20,21 +24,13 @@ export default function NewTournamentPage() {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existingPlayers, setExistingPlayers] = useState<Player[]>([]);
-
-  useEffect(() => {
-    fetch('/api/players')
-      .then(res => res.json())
-      .then(setExistingPlayers)
-      .catch(console.error);
-  }, []);
 
   const addPlayer = () => {
     setPlayers([...players, { name: '', lichessUsername: '' }]);
   };
 
   const removePlayer = (index: number) => {
-    if (players.length <= 2) return; // Minimum 2 players
+    if (players.length <= 2) return;
     setPlayers(players.filter((_, i) => i !== index));
   };
 
@@ -42,10 +38,9 @@ export default function NewTournamentPage() {
     setPlayers(players.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
   };
 
-  const selectExistingPlayer = (index: number, player: Player) => {
-    const username = player.lichessUrl.split('/').pop() || player.id;
+  const selectLichessPlayer = (index: number, lichessPlayer: LichessPlayer) => {
     setPlayers(players.map((p, i) =>
-      i === index ? { name: player.name, lichessUsername: username } : p
+      i === index ? { name: lichessPlayer.name, lichessUsername: lichessPlayer.id } : p
     ));
   };
 
@@ -53,7 +48,6 @@ export default function NewTournamentPage() {
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!name.trim()) {
       setError('Tournament name is required');
       return;
@@ -164,9 +158,8 @@ export default function NewTournamentPage() {
               <PlayerInputRow
                 key={index}
                 player={player}
-                existingPlayers={existingPlayers}
                 onUpdate={(field, value) => updatePlayer(index, field, value)}
-                onSelect={(p) => selectExistingPlayer(index, p)}
+                onSelectLichess={(p) => selectLichessPlayer(index, p)}
                 onRemove={() => removePlayer(index)}
                 canRemove={players.length > 2}
               />
@@ -197,30 +190,52 @@ export default function NewTournamentPage() {
 
 function PlayerInputRow({
   player,
-  existingPlayers,
   onUpdate,
-  onSelect,
+  onSelectLichess,
   onRemove,
   canRemove,
 }: {
   player: PlayerInput;
-  existingPlayers: Player[];
   onUpdate: (field: keyof PlayerInput, value: string) => void;
-  onSelect: (player: Player) => void;
+  onSelectLichess: (player: LichessPlayer) => void;
   onRemove: () => void;
   canRemove: boolean;
 }) {
+  const [suggestions, setSuggestions] = useState<LichessPlayer[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [focusedField, setFocusedField] = useState<'name' | 'lichess' | null>(null);
+  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout>();
 
-  const query = focusedField === 'name' ? player.name : player.lichessUsername;
-  const suggestions = existingPlayers.filter(p => {
-    if (!query) return true; // Show all when empty
-    const q = query.toLowerCase();
-    const username = p.lichessUrl.split('/').pop()?.toLowerCase() || '';
-    return p.name.toLowerCase().includes(q) || username.includes(q);
-  }).slice(0, 5);
+  const fetchSuggestions = async (term: string) => {
+    if (term.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/lichess/autocomplete?term=${encodeURIComponent(term)}`);
+      const data = await res.json();
+      setSuggestions(data.result || []);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLichessInputChange = (value: string) => {
+    onUpdate('lichessUsername', value);
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -229,7 +244,12 @@ function PlayerInputRow({
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -238,41 +258,41 @@ function PlayerInputRow({
         <div className="relative w-full sm:flex-1">
           <input
             type="text"
+            value={player.lichessUsername}
+            onChange={e => handleLichessInputChange(e.target.value)}
+            onFocus={() => setShowSuggestions(true)}
+            placeholder="Lichess username"
+            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
+          />
+          {showSuggestions && (suggestions.length > 0 || loading) && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+              {loading ? (
+                <div className="px-4 py-2 text-zinc-500 text-sm">Searching...</div>
+              ) : (
+                suggestions.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => { onSelectLichess(p); setShowSuggestions(false); setSuggestions([]); }}
+                    className="w-full px-4 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center"
+                  >
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-sm text-zinc-500">@{p.id}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+        <div className="w-full sm:flex-1">
+          <input
+            type="text"
             value={player.name}
             onChange={e => onUpdate('name', e.target.value)}
-            onFocus={() => { setFocusedField('name'); setShowSuggestions(true); }}
             placeholder="Display name"
             className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
           />
         </div>
-        <div className="relative w-full sm:flex-1">
-          <input
-            type="text"
-            value={player.lichessUsername}
-            onChange={e => onUpdate('lichessUsername', e.target.value)}
-            onFocus={() => { setFocusedField('lichess'); setShowSuggestions(true); }}
-            placeholder="Lichess username"
-            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-          />
-        </div>
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-            {suggestions.map(p => {
-              const username = p.lichessUrl.split('/').pop() || p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => { onSelect(p); setShowSuggestions(false); }}
-                  className="w-full px-4 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center"
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-sm text-zinc-500">@{username}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
       <button
         type="button"
