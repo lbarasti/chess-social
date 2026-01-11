@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb, updateMatch } from '@/app/lib/db';
-
-export async function GET() {
-  const db = await getDb();
-  return NextResponse.json(db);
-}
+import { updateMatch } from '@/app/lib/db';
 
 export async function PUT(request: Request) {
   try {

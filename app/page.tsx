@@ -1,70 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Standings } from '@/app/components/Standings';
-import { MatchList } from '@/app/components/MatchList';
-import { Database, MatchResult } from '@/app/lib/types';
+import Link from 'next/link';
+import { Tournament } from '@/app/lib/types';
 
 export default function Home() {
-  const [data, setData] = useState<Database | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/matches');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      setData(json);
-    } catch (error) {
-      console.error('Failed to fetch data', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    const fetchTournaments = async () => {
+      try {
+        const res = await fetch('/api/tournaments');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const json = await res.json();
+        setTournaments(json);
+      } catch (error) {
+        console.error('Failed to fetch tournaments', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTournaments();
   }, []);
 
-  const handleUpdateMatch = async (id: string, result: MatchResult, gameLink?: string) => {
-    // Optimistic update
-    if (data) {
-      setData({
-        ...data,
-        matches: data.matches.map(m => 
-          m.id === id ? { ...m, result, gameLink } : m
-        )
-      });
-    }
-
-    try {
-      const res = await fetch('/api/matches', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, result, gameLink }),
-      });
-      
-      if (!res.ok) {
-        // Revert on failure
-        fetchData();
-        throw new Error('Failed to update');
-      }
-      
-      // Ideally we would use the returned data, but fetching again or relying on optimistic is fine for now
-      // Let's refetch to be sure we're in sync
-      // fetchData(); 
-    } catch (error) {
-      console.error('Failed to update match', error);
-      fetchData(); // Revert
-    }
-  };
-
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading tournament data...</div>;
-  }
-
-  if (!data) {
-    return <div className="min-h-screen flex items-center justify-center text-red-500">Error loading data. Please refresh.</div>;
+    return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading tournaments...</div>;
   }
 
   return (
@@ -74,26 +35,40 @@ export default function Home() {
           XMAS Molesto Chess
         </h1>
         <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Double Round Robin • 4 Players
+          Chess Tournament Tracker
         </p>
       </header>
 
       <section className="space-y-6">
-        <h2 className="text-2xl font-bold px-1">Standings</h2>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <Standings players={data.players} matches={data.matches} />
+        <div className="flex justify-between items-center px-1">
+          <h2 className="text-2xl font-bold">Tournaments</h2>
+          <Link
+            href="/tournaments/new"
+            className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            + New Tournament
+          </Link>
         </div>
+        {tournaments.length === 0 ? (
+          <p className="text-zinc-500 text-center py-8">No tournaments yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {tournaments.map(tournament => (
+              <Link
+                key={tournament.id}
+                href={`/tournaments/${tournament.id}`}
+                className="block bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+              >
+                <h3 className="font-semibold text-lg">{tournament.name}</h3>
+                <p className="text-sm text-zinc-500">
+                  Created {new Date(tournament.createdAt).toLocaleDateString()}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-bold px-1">Matches</h2>
-        <MatchList 
-          players={data.players} 
-          matches={data.matches} 
-          onUpdateMatch={handleUpdateMatch} 
-        />
-      </section>
-      
       <footer className="text-center text-zinc-500 pt-8 pb-8 border-t border-zinc-200 dark:border-zinc-800 text-sm">
         <p>Good luck!</p>
       </footer>
