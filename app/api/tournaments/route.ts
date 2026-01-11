@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const tournament = await createTournament({ name, players, rounds });
+    const tournament = await createTournament({ name, players, rounds, creatorId: lichessUser.id });
 
     if (!tournament) {
       return NextResponse.json({ error: 'Failed to create tournament' }, { status: 500 });

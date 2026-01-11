@@ -7,6 +7,7 @@ export type Player = {
 export type Tournament = {
   id: string;
   name: string;
+  creatorId?: string; // Lichess username of the creator
   createdAt: string;
 };
 

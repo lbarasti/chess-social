@@ -11,6 +11,7 @@ create table if not exists players (
 create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  creator_id text, -- Lichess username of the creator
   created_at timestamptz default now()
 );
 

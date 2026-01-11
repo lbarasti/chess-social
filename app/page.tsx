@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tournament } from '@/app/lib/types';
 import { useAuth } from '@/app/components/AuthContext';
 
 export default function Home() {
+  const router = useRouter();
   const { user } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,16 +51,27 @@ export default function Home() {
         ) : (
           <div className="space-y-3">
             {tournaments.map(tournament => (
-              <Link
+              <div
                 key={tournament.id}
-                href={`/tournaments/${tournament.id}`}
-                className="block bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                onClick={() => router.push(`/tournaments/${tournament.id}`)}
+                className="cursor-pointer bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
               >
                 <h3 className="font-semibold text-lg">{tournament.name}</h3>
                 <p className="text-sm text-zinc-500">
                   Created {new Date(tournament.createdAt).toLocaleDateString()}
+                  {tournament.creatorId && (
+                    <> by <a
+                      href={`https://lichess.org/@/${tournament.creatorId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-zinc-700 dark:hover:text-zinc-300"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {tournament.creatorId}
+                    </a></>
+                  )}
                 </p>
-              </Link>
+              </div>
             ))}
           </div>
         )}

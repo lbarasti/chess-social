@@ -80,6 +80,16 @@ export default function TournamentPage() {
         </h1>
         <p className="text-lg text-zinc-600 dark:text-zinc-400">
           Double Round Robin • {data.players.length} Players
+          {data.creatorId && (
+            <> • Created by <a
+              href={`https://lichess.org/@/${data.creatorId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-zinc-800 dark:hover:text-zinc-200"
+            >
+              {data.creatorId}
+            </a></>
+          )}
         </p>
       </header>
 

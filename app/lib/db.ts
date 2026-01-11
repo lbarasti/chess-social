@@ -1,5 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
-import { Player, Match, Tournament, TournamentWithMatches } from './types';
+import { Player, Match, Tournament, TournamentWithMatches, MatchResult } from './types';
+
+// Database row types (snake_case)
+type DbTournament = {
+  id: string;
+  name: string;
+  creator_id: string | null;
+  created_at: string;
+};
+
+type DbPlayer = {
+  id: string;
+  name: string;
+  lichess_url: string;
+};
+
+type DbMatch = {
+  id: string;
+  tournament_id: string;
+  white: string;
+  black: string;
+  result: MatchResult;
+  game_link: string | null;
+};
 
 // Server-only environment variables (no NEXT_PUBLIC_ prefix)
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -26,9 +49,10 @@ export async function getTournaments(): Promise<Tournament[]> {
     return [];
   }
 
-  return (data || []).map((t: any) => ({
+  return (data || []).map((t: DbTournament) => ({
     id: t.id,
     name: t.name,
+    creatorId: t.creator_id ?? undefined,
     createdAt: t.created_at,
   }));
 }
@@ -62,7 +86,7 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
 
   // Get unique player IDs from matches
   const playerIds = new Set<string>();
-  (matches || []).forEach((m: any) => {
+  (matches || []).forEach((m: DbMatch) => {
     playerIds.add(m.white);
     playerIds.add(m.black);
   });
@@ -76,27 +100,28 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
   if (playersError) console.error('Error fetching players:', playersError);
 
   // Map DB snake_case to app camelCase
-  const mappedPlayers = (players || []).map((p: any) => ({
+  const mappedPlayers: Player[] = (players || []).map((p: DbPlayer) => ({
     id: p.id,
     name: p.name,
-    lichessUrl: p.lichess_url || p.lichessUrl,
+    lichessUrl: p.lichess_url,
   }));
 
-  const mappedMatches = (matches || []).map((m: any) => ({
+  const mappedMatches: Match[] = (matches || []).map((m: DbMatch) => ({
     id: m.id,
     tournamentId: m.tournament_id,
     white: m.white,
     black: m.black,
     result: m.result,
-    gameLink: m.game_link || m.gameLink,
+    gameLink: m.game_link ?? undefined,
   }));
 
   return {
     id: tournament.id,
     name: tournament.name,
+    creatorId: tournament.creator_id ?? undefined,
     createdAt: tournament.created_at,
-    players: mappedPlayers as Player[],
-    matches: mappedMatches as Match[],
+    players: mappedPlayers,
+    matches: mappedMatches,
   };
 }
 
@@ -104,6 +129,7 @@ export type CreateTournamentInput = {
   name: string;
   players: { name: string; lichessUsername: string }[];
   rounds: number;
+  creatorId: string;
 };
 
 export async function createTournament(input: CreateTournamentInput): Promise<Tournament | null> {
@@ -112,12 +138,12 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
     return null;
   }
 
-  const { name, players, rounds } = input;
+  const { name, players, rounds, creatorId } = input;
 
   // 1. Create tournament
   const { data: tournament, error: tournamentError } = await supabase
     .from('tournaments')
-    .insert({ name })
+    .insert({ name, creator_id: creatorId })
     .select()
     .single();
 
@@ -156,6 +182,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
   return {
     id: tournament.id,
     name: tournament.name,
+    creatorId: tournament.creator_id,
     createdAt: tournament.created_at,
   };
 }
@@ -193,7 +220,7 @@ export async function updateMatch(
 ): Promise<Match | null> {
   if (!supabase) return null;
 
-  const updates: any = { result };
+  const updates: { result: MatchResult; game_link?: string } = { result };
   if (gameLink !== undefined) {
     updates.game_link = gameLink;
   }
