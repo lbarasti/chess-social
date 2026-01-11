@@ -84,6 +84,16 @@ export class LichessAuth {
     this.oauth = null;
   }
 
+  async getAccessToken(): Promise<string | null> {
+    if (!this.oauth) return null;
+    try {
+      const accessContext = await this.oauth.getAccessToken();
+      return accessContext?.token?.value || null;
+    } catch {
+      return null;
+    }
+  }
+
   private async authenticate(): Promise<void> {
     const oauth = this.getOAuth();
     const httpClient = oauth.decorateFetchHTTPClient(window.fetch);

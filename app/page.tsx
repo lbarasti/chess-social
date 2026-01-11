@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tournament } from '@/app/lib/types';
+import { useAuth } from '@/app/components/AuthContext';
 
 export default function Home() {
+  const { user } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,12 +35,14 @@ export default function Home() {
       <section className="space-y-6">
         <div className="flex justify-between items-center px-1">
           <h2 className="text-2xl font-bold">Tournaments</h2>
-          <Link
-            href="/tournaments/new"
-            className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            + New Tournament
-          </Link>
+          {user && (
+            <Link
+              href="/tournaments/new"
+              className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity"
+            >
+              + New Tournament
+            </Link>
+          )}
         </div>
         {tournaments.length === 0 ? (
           <p className="text-zinc-500 text-center py-8">No tournaments yet.</p>

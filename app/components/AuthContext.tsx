@@ -8,6 +8,7 @@ type AuthContextType = {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -35,8 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const getAccessToken = useCallback(async () => {
+    const auth = getAuth();
+    return auth.getAccessToken();
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, getAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

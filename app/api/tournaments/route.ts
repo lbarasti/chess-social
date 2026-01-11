@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getTournaments, createTournament } from '@/app/lib/db';
 
+const LICHESS_HOST = 'https://lichess.org';
+
+async function verifyLichessToken(token: string): Promise<{ id: string; username: string } | null> {
+  try {
+    const res = await fetch(`${LICHESS_HOST}/api/account`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { id: data.id, username: data.username };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
   const tournaments = await getTournaments();
   return NextResponse.json(tournaments);
@@ -8,6 +23,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Verify authentication
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.slice(7);
+    const lichessUser = await verifyLichessToken(token);
+    if (!lichessUser) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, type, rounds, players } = body;
 

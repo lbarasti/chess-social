@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/app/components/AuthContext';
 
 interface PlayerInput {
   name: string;
@@ -16,6 +17,7 @@ interface LichessPlayer {
 
 export default function NewTournamentPage() {
   const router = useRouter();
+  const { user, loading: authLoading, login, getAccessToken } = useAuth();
   const [name, setName] = useState('');
   const [rounds, setRounds] = useState(2);
   const [players, setPlayers] = useState<PlayerInput[]>([
@@ -70,9 +72,19 @@ export default function NewTournamentPage() {
     setSubmitting(true);
 
     try {
+      const token = await getAccessToken();
+      if (!token) {
+        setError('You must be logged in to create a tournament');
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch('/api/tournaments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           name: name.trim(),
           type: 'round-robin',
@@ -96,6 +108,32 @@ export default function NewTournamentPage() {
       setSubmitting(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen p-4 sm:p-8 max-w-2xl mx-auto pb-20 font-(family-name:--font-geist-sans)">
+        <header className="space-y-4 pt-8 mb-8">
+          <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+            &larr; All Tournaments
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">New Tournament</h1>
+        </header>
+        <div className="text-center py-12 space-y-4">
+          <p className="text-zinc-600 dark:text-zinc-400">You must be logged in to create a tournament.</p>
+          <button
+            onClick={login}
+            className="px-6 py-3 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            Login with Lichess
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-8 max-w-2xl mx-auto pb-20 font-[family-name:var(--font-geist-sans)]">
