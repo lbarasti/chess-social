@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for xmas-molesto on 2025-12-24T19:04:33Z
+# fly.toml app configuration file generated for chess-social on 2026-01-12T22:33:12Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'xmas-molesto'
+app = 'chess-social'
 primary_region = 'lhr'
 
 [build]
@@ -17,7 +17,6 @@ primary_region = 'lhr'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
   memory_mb = 512
