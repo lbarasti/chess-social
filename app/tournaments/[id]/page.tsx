@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Standings } from '@/app/components/Standings';
@@ -35,6 +35,15 @@ export default function TournamentPage() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  const { upcomingMatches, completedMatches } = useMemo(() => {
+    if (!data) return { upcomingMatches: [], completedMatches: [] };
+
+    const upcoming = data.matches.filter(m => !m.result);
+    const completed = data.matches.filter(m => m.result);
+
+    return { upcomingMatches: upcoming, completedMatches: completed };
+  }, [data]);
 
   const handleUpdateMatch = async (matchId: string, result: MatchResult, gameLink?: string) => {
     // Optimistic update
@@ -163,12 +172,34 @@ export default function TournamentPage() {
             {challengeStatus.message}
           </div>
         )}
-        <MatchList
-          matches={data.matches}
-          currentUserId={user?.id}
-          onUpdateMatch={handleUpdateMatch}
-          onChallenge={handleChallenge}
-        />
+
+        {upcomingMatches.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 px-1">Upcoming</h3>
+            <MatchList
+              matches={upcomingMatches}
+              currentUserId={user?.id}
+              onUpdateMatch={handleUpdateMatch}
+              onChallenge={handleChallenge}
+            />
+          </div>
+        )}
+
+        {completedMatches.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 px-1">Completed</h3>
+            <MatchList
+              matches={completedMatches}
+              currentUserId={user?.id}
+              onUpdateMatch={handleUpdateMatch}
+              onChallenge={handleChallenge}
+            />
+          </div>
+        )}
+
+        {upcomingMatches.length === 0 && completedMatches.length === 0 && (
+          <p className="text-zinc-500 text-center py-8">No matches yet.</p>
+        )}
       </section>
 
       <footer className="text-center text-zinc-500 pt-8 pb-8 border-t border-zinc-200 dark:border-zinc-800 text-sm">
