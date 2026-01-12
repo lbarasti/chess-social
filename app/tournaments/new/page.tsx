@@ -36,6 +36,7 @@ export default function NewTournamentPage() {
   // Challenge settings
   const [variant, setVariant] = useState<ChessVariant>('standard');
   const [timeControl, setTimeControl] = useState<TimeControl>({ type: 'clock', limit: 300, increment: 3 });
+  const [rated, setRated] = useState(false);
 
   const MAX_PLAYERS = 20;
 
@@ -96,7 +97,7 @@ export default function NewTournamentPage() {
           players: validPlayers.map(p => ({ lichessUsername: p.trim() })),
           challengeSettings: {
             timeControl,
-            rated: false,
+            rated,
             variant,
           },
         }),
@@ -307,6 +308,37 @@ export default function NewTournamentPage() {
               </select>
             </div>
           ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <label className="block font-medium">Game Type</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setRated(false)}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                !rated
+                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
+              }`}
+            >
+              Casual
+            </button>
+            <button
+              type="button"
+              onClick={() => setRated(true)}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                rated
+                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
+              }`}
+            >
+              Rated
+            </button>
+          </div>
+          <p className="text-sm text-zinc-500">
+            Rated games affect players&apos; Lichess ratings.
+          </p>
         </div>
 
         <div className="space-y-4">

@@ -1,39 +1,57 @@
 'use client';
 
 import { Match, MatchResult } from '@/app/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MatchListProps {
   matches: Match[];
+  currentUserId?: string;
   onUpdateMatch: (matchId: string, result: MatchResult, gameLink?: string) => Promise<void>;
+  onChallenge?: (matchId: string, opponentId: string, userColor: 'white' | 'black') => void;
 }
 
-export function MatchList({ matches, onUpdateMatch }: MatchListProps) {
-
+export function MatchList({ matches, currentUserId, onUpdateMatch, onChallenge }: MatchListProps) {
   return (
     <div className="space-y-3">
-      {matches.map(match => (
-        <MatchItem 
-          key={match.id} 
-          match={match} 
-          whiteName={match.white}
-          blackName={match.black}
-          onUpdate={onUpdateMatch}
-        />
-      ))}
+      {matches.map(match => {
+        const userIsWhite = currentUserId && match.white.toLowerCase() === currentUserId.toLowerCase();
+        const userIsBlack = currentUserId && match.black.toLowerCase() === currentUserId.toLowerCase();
+        const isUserMatch = userIsWhite || userIsBlack;
+        const opponentId = userIsWhite ? match.black : userIsBlack ? match.white : undefined;
+        const userColor = userIsWhite ? 'white' : 'black';
+
+        return (
+          <MatchItem
+            key={match.id}
+            match={match}
+            whiteName={match.white}
+            blackName={match.black}
+            onUpdate={onUpdateMatch}
+            canChallenge={!!isUserMatch && !match.result && !!onChallenge}
+            onChallenge={opponentId ? () => onChallenge?.(match.id, opponentId, userColor) : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function MatchItem({ match, whiteName, blackName, onUpdate }: { 
-  match: Match, 
-  whiteName: string, 
+function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChallenge }: {
+  match: Match,
+  whiteName: string,
   blackName: string,
-  onUpdate: (id: string, result: MatchResult, gameLink?: string) => Promise<void>
+  onUpdate: (id: string, result: MatchResult, gameLink?: string) => Promise<void>,
+  canChallenge?: boolean,
+  onChallenge?: () => void,
 }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [linkInput, setLinkInput] = useState(match.gameLink || '');
+
+  // Sync linkInput when match.gameLink changes externally (e.g., from challenge)
+  useEffect(() => {
+    setLinkInput(match.gameLink || '');
+  }, [match.gameLink]);
 
   const handleResultUpdate = async (result: MatchResult) => {
     // If clicking the active result, clear it (toggle off)
@@ -119,11 +137,20 @@ function MatchItem({ match, whiteName, blackName, onUpdate }: {
           </div>
         ) : (
           <div className="flex gap-2 items-center text-zinc-400">
-             {match.gameLink ? (
-              <a 
-                href={match.gameLink} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+            {canChallenge && onChallenge && (
+              <button
+                onClick={onChallenge}
+                className="text-orange-500 hover:text-orange-600 dark:hover:text-orange-400"
+                title="Challenge opponent"
+              >
+                ⚔️
+              </button>
+            )}
+            {match.gameLink ? (
+              <a
+                href={match.gameLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-500 hover:underline flex items-center gap-1"
               >
                 View Game ↗
@@ -131,7 +158,7 @@ function MatchItem({ match, whiteName, blackName, onUpdate }: {
             ) : (
               <span className="italic text-zinc-300 dark:text-zinc-700">No game link</span>
             )}
-            <button 
+            <button
               onClick={() => setIsEditingLink(true)}
               className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
               title="Edit Game Link"

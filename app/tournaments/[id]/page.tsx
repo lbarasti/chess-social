@@ -6,14 +6,17 @@ import Link from 'next/link';
 import { Standings } from '@/app/components/Standings';
 import { MatchList } from '@/app/components/MatchList';
 import { TournamentWithMatches, MatchResult } from '@/app/lib/types';
+import { useAuth } from '@/app/components/AuthContext';
 
 export default function TournamentPage() {
   const params = useParams();
   const id = params.id as string;
+  const { user, getAccessToken } = useAuth();
 
   const [data, setData] = useState<TournamentWithMatches | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [challengeStatus, setChallengeStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const fetchData = async () => {
     try {
@@ -61,6 +64,53 @@ export default function TournamentPage() {
     }
   };
 
+  const handleChallenge = async (matchId: string, opponentId: string, userColor: 'white' | 'black') => {
+    setChallengeStatus(null);
+
+    const token = await getAccessToken();
+    if (!token) {
+      setChallengeStatus({ type: 'error', message: 'You must be logged in to challenge' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/lichess/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          opponent: opponentId,
+          color: userColor,
+          settings: data?.challengeSettings,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setChallengeStatus({ type: 'error', message: result.error || 'Failed to create challenge' });
+        return;
+      }
+
+      // Open the challenge URL in a new tab and save it as the game link
+      if (result.url) {
+        window.open(result.url, '_blank');
+        setChallengeStatus({ type: 'success', message: `Challenge sent to ${opponentId}!` });
+
+        // Find the match and update its game link
+        const match = data?.matches.find(m => m.id === matchId);
+        if (match) {
+          await handleUpdateMatch(matchId, match.result, result.url);
+        }
+      }
+    } catch (err) {
+      console.error('Challenge error:', err);
+      setChallengeStatus({ type: 'error', message: 'Failed to create challenge' });
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading tournament...</div>;
   }
@@ -102,9 +152,22 @@ export default function TournamentPage() {
 
       <section className="space-y-6">
         <h2 className="text-2xl font-bold px-1">Matches</h2>
+        {challengeStatus && (
+          <div
+            className={`p-3 rounded-lg text-sm ${
+              challengeStatus.type === 'success'
+                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+            }`}
+          >
+            {challengeStatus.message}
+          </div>
+        )}
         <MatchList
           matches={data.matches}
+          currentUserId={user?.id}
           onUpdateMatch={handleUpdateMatch}
+          onChallenge={handleChallenge}
         />
       </section>
 

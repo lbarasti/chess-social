@@ -2,7 +2,7 @@
 
 import { Player, Match } from '@/app/lib/types';
 import { calculateStandings } from '@/app/lib/logic';
-import { getLichessProfileUrl, getLichessChallengeUrl } from '@/app/lib/lichess';
+import { getLichessProfileUrl } from '@/app/lib/lichess';
 
 interface StandingsProps {
   players: Player[];
@@ -34,27 +34,14 @@ export function Standings({ players, matches }: StandingsProps) {
               <tr key={stat.playerId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                 <td className="px-4 py-3 text-zinc-500">{index + 1}</td>
                 <td className="px-4 py-3 font-medium">
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={player ? getLichessProfileUrl(player.id) : undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline hover:text-blue-500"
-                    >
-                      {player?.id}
-                    </a>
-                    {player && (
-                      <a
-                        href={getLichessChallengeUrl(player.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-zinc-400 hover:text-orange-500 no-underline"
-                        title="Challenge to a game"
-                      >
-                        ⚔️
-                      </a>
-                    )}
-                  </div>
+                  <a
+                    href={player ? getLichessProfileUrl(player.id) : undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline hover:text-blue-500"
+                  >
+                    {player?.id}
+                  </a>
                 </td>
                 <td className="px-4 py-3 text-right text-zinc-500">{stat.played}</td>
                 <td className="px-4 py-3 text-right text-green-600 dark:text-green-500">{stat.won}</td>
