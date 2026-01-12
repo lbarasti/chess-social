@@ -40,6 +40,7 @@ export type Tournament = {
   createdAt: string;
   challengeSettings?: ChallengeSettings; // Optional Lichess challenge configuration
   playerIds?: string[]; // Player IDs (lichess usernames) - only included in list view
+  isComplete?: boolean; // Whether all matches have results
 };
 
 export type MatchResult = '1-0' | '0-1' | '0.5-0.5' | null;

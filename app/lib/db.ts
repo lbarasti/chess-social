@@ -9,6 +9,7 @@ type DbTournament = {
   created_at: string;
   challenge_settings: ChallengeSettings | null;
   player_ids: string[] | null;
+  is_complete: boolean;
 };
 
 type DbPlayer = {
@@ -56,6 +57,7 @@ export async function getTournaments(): Promise<Tournament[]> {
     createdAt: t.created_at,
     challengeSettings: t.challenge_settings ?? undefined,
     playerIds: t.player_ids ?? [],
+    isComplete: t.is_complete,
   }));
 }
 
@@ -217,8 +219,8 @@ function generateRoundRobinMatches(
 }
 
 export async function updateMatch(
-  matchId: string, 
-  result: '1-0' | '0-1' | '0.5-0.5' | null, 
+  matchId: string,
+  result: '1-0' | '0-1' | '0.5-0.5' | null,
   gameLink?: string
 ): Promise<Match | null> {
   if (!supabase) return null;
@@ -239,6 +241,20 @@ export async function updateMatch(
     console.error('Error updating match:', error);
     return null;
   }
+
+  // Update tournament completion status
+  const tournamentId = data.tournament_id;
+  const { count: incompleteMatches } = await supabase
+    .from('matches')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+    .is('result', null);
+
+  const isComplete = incompleteMatches === 0;
+  await supabase
+    .from('tournaments')
+    .update({ is_complete: isComplete })
+    .eq('id', tournamentId);
 
   return {
     id: data.id,

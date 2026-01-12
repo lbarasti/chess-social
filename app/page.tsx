@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Trophy } from 'lucide-react';
 import { Tournament } from '@/app/lib/types';
 import { useAuth } from '@/app/components/AuthContext';
 
@@ -27,7 +27,15 @@ function TournamentCard({
     >
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-semibold text-lg">{tournament.name}</h3>
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            {tournament.name}
+            {tournament.isComplete && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+                <Trophy size={12} />
+                Complete
+              </span>
+            )}
+          </h3>
           <p className="text-sm text-zinc-500">
             Created {new Date(tournament.createdAt).toLocaleDateString()}
             {tournament.creatorId && (

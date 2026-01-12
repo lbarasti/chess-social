@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { Trophy } from 'lucide-react';
 import { Standings } from '@/app/components/Standings';
 import { MatchList } from '@/app/components/MatchList';
 import { TournamentWithMatches, MatchResult } from '@/app/lib/types';
@@ -36,13 +37,14 @@ export default function TournamentPage() {
     fetchData();
   }, [id]);
 
-  const { upcomingMatches, completedMatches } = useMemo(() => {
-    if (!data) return { upcomingMatches: [], completedMatches: [] };
+  const { upcomingMatches, completedMatches, isTournamentComplete } = useMemo(() => {
+    if (!data) return { upcomingMatches: [], completedMatches: [], isTournamentComplete: false };
 
     const upcoming = data.matches.filter(m => !m.result);
     const completed = data.matches.filter(m => m.result);
+    const isComplete = data.matches.length > 0 && upcoming.length === 0;
 
-    return { upcomingMatches: upcoming, completedMatches: completed };
+    return { upcomingMatches: upcoming, completedMatches: completed, isTournamentComplete: isComplete };
   }, [data]);
 
   const handleUpdateMatch = async (matchId: string, result: MatchResult, gameLink?: string) => {
@@ -152,10 +154,17 @@ export default function TournamentPage() {
         </p>
       </header>
 
+      {isTournamentComplete && (
+        <div className="flex items-center justify-center gap-2 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400">
+          <Trophy size={20} />
+          <span className="font-semibold">Tournament Complete</span>
+        </div>
+      )}
+
       <section className="space-y-6">
-        <h2 className="text-2xl font-bold px-1">Standings</h2>
+        <h2 className="text-2xl font-bold px-1">{isTournamentComplete ? 'Final Standings' : 'Standings'}</h2>
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <Standings players={data.players} matches={data.matches} />
+          <Standings players={data.players} matches={data.matches} isComplete={isTournamentComplete} />
         </div>
       </section>
 

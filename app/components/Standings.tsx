@@ -3,13 +3,21 @@
 import { Player, Match } from '@/app/lib/types';
 import { calculateStandings } from '@/app/lib/logic';
 import { getLichessProfileUrl } from '@/app/lib/lichess';
+import { Trophy } from 'lucide-react';
 
 interface StandingsProps {
   players: Player[];
   matches: Match[];
+  isComplete?: boolean;
 }
 
-export function Standings({ players, matches }: StandingsProps) {
+const podiumStyles: Record<number, { bg: string; icon: string }> = {
+  0: { bg: 'bg-amber-50 dark:bg-amber-900/20', icon: 'text-amber-500' },
+  1: { bg: 'bg-zinc-100 dark:bg-zinc-700/30', icon: 'text-zinc-400' },
+  2: { bg: 'bg-orange-50 dark:bg-orange-900/20', icon: 'text-orange-600' },
+};
+
+export function Standings({ players, matches, isComplete }: StandingsProps) {
   const standings = calculateStandings(players, matches);
 
   return (
@@ -29,10 +37,19 @@ export function Standings({ players, matches }: StandingsProps) {
         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {standings.map((stat, index) => {
             const player = players.find(p => p.id === stat.playerId);
+            const podium = isComplete && index < 3 ? podiumStyles[index] : null;
 
             return (
-              <tr key={stat.playerId} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                <td className="px-4 py-3 text-zinc-500">{index + 1}</td>
+              <tr
+                key={stat.playerId}
+                className={podium ? podium.bg : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/50'}
+              >
+                <td className="px-4 py-3 text-zinc-500">
+                  <span className="flex items-center gap-1.5">
+                    {podium && <Trophy size={14} className={podium.icon} />}
+                    {index + 1}
+                  </span>
+                </td>
                 <td className="px-4 py-3 font-medium">
                   <a
                     href={player ? getLichessProfileUrl(player.id) : undefined}

@@ -12,7 +12,8 @@ create table if not exists tournaments (
   creator_id text, -- Lichess username of the creator
   created_at timestamptz default now(),
   challenge_settings jsonb, -- Lichess challenge configuration (time control, rated, variant, rules)
-  player_ids text[] default '{}' -- Array of player IDs (lichess usernames)
+  player_ids text[] default '{}', -- Array of player IDs (lichess usernames)
+  is_complete boolean default false -- Whether all matches have results
 );
 
 -- Create Matches table
