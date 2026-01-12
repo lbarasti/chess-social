@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Player, Match, Tournament, TournamentWithMatches, MatchResult } from './types';
+import { Player, Match, Tournament, TournamentWithMatches, MatchResult, ChallengeSettings } from './types';
 
 // Database row types (snake_case)
 type DbTournament = {
@@ -7,6 +7,7 @@ type DbTournament = {
   name: string;
   creator_id: string | null;
   created_at: string;
+  challenge_settings: ChallengeSettings | null;
 };
 
 type DbPlayer = {
@@ -52,6 +53,7 @@ export async function getTournaments(): Promise<Tournament[]> {
     name: t.name,
     creatorId: t.creator_id ?? undefined,
     createdAt: t.created_at,
+    challengeSettings: t.challenge_settings ?? undefined,
   }));
 }
 
@@ -116,6 +118,7 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
     name: tournament.name,
     creatorId: tournament.creator_id ?? undefined,
     createdAt: tournament.created_at,
+    challengeSettings: tournament.challenge_settings ?? undefined,
     players: mappedPlayers,
     matches: mappedMatches,
   };
@@ -126,6 +129,7 @@ export type CreateTournamentInput = {
   players: { lichessUsername: string }[];
   rounds: number;
   creatorId: string;
+  challengeSettings?: ChallengeSettings;
 };
 
 export async function createTournament(input: CreateTournamentInput): Promise<Tournament | null> {
@@ -134,12 +138,16 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
     return null;
   }
 
-  const { name, players, rounds, creatorId } = input;
+  const { name, players, rounds, creatorId, challengeSettings } = input;
 
   // 1. Create tournament
   const { data: tournament, error: tournamentError } = await supabase
     .from('tournaments')
-    .insert({ name, creator_id: creatorId })
+    .insert({
+      name,
+      creator_id: creatorId,
+      challenge_settings: challengeSettings ?? null,
+    })
     .select()
     .single();
 
@@ -175,6 +183,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
     name: tournament.name,
     creatorId: tournament.creator_id,
     createdAt: tournament.created_at,
+    challengeSettings: tournament.challenge_settings ?? undefined,
   };
 }
 

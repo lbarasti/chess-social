@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, type, rounds, players } = body;
+    const { name, type, rounds, players, challengeSettings } = body;
 
     if (!name || typeof name !== 'string') {
       return NextResponse.json({ error: 'Tournament name is required' }, { status: 400 });
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const tournament = await createTournament({ name, players, rounds, creatorId: lichessUser.id });
+    const tournament = await createTournament({ name, players, rounds, creatorId: lichessUser.id, challengeSettings });
 
     if (!tournament) {
       return NextResponse.json({ error: 'Failed to create tournament' }, { status: 500 });
