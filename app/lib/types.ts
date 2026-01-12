@@ -39,6 +39,7 @@ export type Tournament = {
   creatorId?: string; // Lichess username of the creator
   createdAt: string;
   challengeSettings?: ChallengeSettings; // Optional Lichess challenge configuration
+  playerIds?: string[]; // Player IDs (lichess usernames) - only included in list view
 };
 
 export type MatchResult = '1-0' | '0-1' | '0.5-0.5' | null;

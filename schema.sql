@@ -11,7 +11,8 @@ create table if not exists tournaments (
   name text not null,
   creator_id text, -- Lichess username of the creator
   created_at timestamptz default now(),
-  challenge_settings jsonb -- Lichess challenge configuration (time control, rated, variant, rules)
+  challenge_settings jsonb, -- Lichess challenge configuration (time control, rated, variant, rules)
+  player_ids text[] default '{}' -- Array of player IDs (lichess usernames)
 );
 
 -- Create Matches table
@@ -34,8 +35,8 @@ insert into players (id) values
 on conflict (id) do nothing;
 
 -- Create default tournament and matches (for fresh install)
-insert into tournaments (id, name) values
-  ('a0b1c2d3-e4f5-6789-abcd-ef0123456789', 'XMAS Molesto 2024')
+insert into tournaments (id, name, player_ids) values
+  ('a0b1c2d3-e4f5-6789-abcd-ef0123456789', 'XMAS Molesto 2024', ARRAY['flevour', 'gso1010', 'gianmarcosanti', 'lbarasti'])
 on conflict (id) do nothing;
 
 -- Generate Schedule (Simple Double Round Robin)

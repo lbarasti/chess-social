@@ -8,6 +8,7 @@ type DbTournament = {
   creator_id: string | null;
   created_at: string;
   challenge_settings: ChallengeSettings | null;
+  player_ids: string[] | null;
 };
 
 type DbPlayer = {
@@ -54,6 +55,7 @@ export async function getTournaments(): Promise<Tournament[]> {
     creatorId: t.creator_id ?? undefined,
     createdAt: t.created_at,
     challengeSettings: t.challenge_settings ?? undefined,
+    playerIds: t.player_ids ?? [],
   }));
 }
 
@@ -139,14 +141,16 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
   }
 
   const { name, players, rounds, creatorId, challengeSettings } = input;
+  const playerIds = players.map(p => p.lichessUsername.toLowerCase());
 
-  // 1. Create tournament
+  // 1. Create tournament with player IDs
   const { data: tournament, error: tournamentError } = await supabase
     .from('tournaments')
     .insert({
       name,
       creator_id: creatorId,
       challenge_settings: challengeSettings ?? null,
+      player_ids: playerIds,
     })
     .select()
     .single();
@@ -157,8 +161,6 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
   }
 
   // 2. Upsert players (create if not exists, based on lichess username as ID)
-  const playerIds = players.map(p => p.lichessUsername.toLowerCase());
-
   const { error: playersError } = await supabase
     .from('players')
     .upsert(playerIds.map(id => ({ id })), { onConflict: 'id' });
@@ -184,6 +186,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
     creatorId: tournament.creator_id,
     createdAt: tournament.created_at,
     challengeSettings: tournament.challenge_settings ?? undefined,
+    playerIds,
   };
 }
 

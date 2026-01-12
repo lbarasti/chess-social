@@ -2,6 +2,7 @@
 
 import { Match, MatchResult } from '@/app/lib/types';
 import { useState } from 'react';
+import { Swords, Pencil } from 'lucide-react';
 
 interface MatchListProps {
   matches: Match[];
@@ -135,10 +136,10 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChal
             {canChallenge && onChallenge && (
               <button
                 onClick={onChallenge}
-                className="text-orange-500 hover:text-orange-600 dark:hover:text-orange-400"
+                className="text-orange-500 hover:text-orange-600 dark:hover:text-orange-400 cursor-pointer p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors"
                 title="Challenge opponent"
               >
-                ⚔️
+                <Swords size={16} />
               </button>
             )}
             {match.gameLink ? (
@@ -155,10 +156,10 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChal
             )}
             <button
               onClick={() => setIsEditingLink(true)}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-              title="Edit Game Link"
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Edit game link"
             >
-              📝
+              <Pencil size={14} />
             </button>
           </div>
         )}
