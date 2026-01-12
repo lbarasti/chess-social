@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTournament, deleteTournament } from '@/app/lib/db';
-
-const LICHESS_HOST = 'https://lichess.org';
+import { LICHESS_HOST } from '@/app/lib/lichess';
 
 async function verifyLichessToken(token: string): Promise<{ id: string; username: string } | null> {
   try {

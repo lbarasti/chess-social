@@ -54,10 +54,14 @@ npm run lint
 
 ### Database Schema
 
-Tables: `players` (id, name, lichess_url) and `matches` (id, white, black, result, game_link)
+Tables:
+- `tournaments` (id, name, creator_id, created_at)
+- `players` (id) - stores Lichess usernames
+- `matches` (id, tournament_id, white, black, result, game_link) - cascades on tournament delete
 
 - Match results use string format: `'1-0'`, `'0-1'`, `'0.5-0.5'`, or `null`
-- Database uses snake_case (e.g., `lichess_url`, `game_link`), mapped to camelCase in the app
+- Database uses snake_case (e.g., `game_link`), mapped to camelCase in the app
+- Lichess profile URLs are computed from usernames using `getLichessProfileUrl()` in `app/lib/lichess.ts`
 - Initial schema and seed data in `schema.sql`
 
 ### Configuration

@@ -1,7 +1,5 @@
 export type Player = {
-  id: string;
-  name: string;
-  lichessUrl: string;
+  id: string; // Lichess username
 };
 
 export type Tournament = {

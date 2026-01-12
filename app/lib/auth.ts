@@ -2,9 +2,9 @@
 
 import { OAuth2AuthCodePKCE, type HttpClient } from '@bity/oauth2-auth-code-pkce';
 import { LichessUser } from './types';
+import { LICHESS_HOST } from './lichess';
 
-export const LICHESS_HOST = 'https://lichess.org';
-export const LICHESS_SCOPES: string[] = []; // Empty = read-only access to public data
+const LICHESS_SCOPES: string[] = []; // Empty = read-only access to public data
 
 // Get client URL dynamically (works in browser only)
 const getClientUrl = () => {

@@ -11,8 +11,6 @@ type DbTournament = {
 
 type DbPlayer = {
   id: string;
-  name: string;
-  lichess_url: string;
 };
 
 type DbMatch = {
@@ -99,11 +97,9 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
 
   if (playersError) console.error('Error fetching players:', playersError);
 
-  // Map DB snake_case to app camelCase
+  // Map players
   const mappedPlayers: Player[] = (players || []).map((p: DbPlayer) => ({
     id: p.id,
-    name: p.name,
-    lichessUrl: p.lichess_url,
   }));
 
   const mappedMatches: Match[] = (matches || []).map((m: DbMatch) => ({
@@ -127,7 +123,7 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
 
 export type CreateTournamentInput = {
   name: string;
-  players: { name: string; lichessUsername: string }[];
+  players: { lichessUsername: string }[];
   rounds: number;
   creatorId: string;
 };
@@ -153,15 +149,11 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
   }
 
   // 2. Upsert players (create if not exists, based on lichess username as ID)
-  const playerRecords = players.map(p => ({
-    id: p.lichessUsername.toLowerCase(),
-    name: p.name,
-    lichess_url: `https://lichess.org/@/${p.lichessUsername}`,
-  }));
+  const playerIds = players.map(p => p.lichessUsername.toLowerCase());
 
   const { error: playersError } = await supabase
     .from('players')
-    .upsert(playerRecords, { onConflict: 'id' });
+    .upsert(playerIds.map(id => ({ id })), { onConflict: 'id' });
 
   if (playersError) {
     console.error('Error upserting players:', playersError);
@@ -169,7 +161,6 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
   }
 
   // 3. Generate round-robin matches
-  const playerIds = playerRecords.map(p => p.id);
   const matches = generateRoundRobinMatches(tournament.id, playerIds, rounds);
 
   const { error: matchesError } = await supabase.from('matches').insert(matches);

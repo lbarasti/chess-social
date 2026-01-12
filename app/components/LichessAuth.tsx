@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from './AuthContext';
-import { LICHESS_HOST } from '../lib/auth';
+import { getLichessProfileUrl } from '../lib/lichess';
 
 export function LichessAuth() {
   const { user, loading, login, logout } = useAuth();
@@ -18,7 +18,7 @@ export function LichessAuth() {
     return (
       <div className="flex items-center gap-3">
         <a
-          href={`${LICHESS_HOST}/@/${user.username}`}
+          href={getLichessProfileUrl(user.username)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm font-medium hover:underline hover:text-blue-500"

@@ -5,25 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/components/AuthContext';
 
-interface PlayerInput {
-  name: string;
-  lichessUsername: string;
-}
-
-interface LichessPlayer {
-  id: string;
-  name: string;
-}
-
 export default function NewTournamentPage() {
   const router = useRouter();
   const { user, loading: authLoading, login, getAccessToken } = useAuth();
   const [name, setName] = useState('');
   const [rounds, setRounds] = useState(2);
-  const [players, setPlayers] = useState<PlayerInput[]>([
-    { name: '', lichessUsername: '' },
-    { name: '', lichessUsername: '' },
-  ]);
+  const [players, setPlayers] = useState<string[]>(['', '']);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +18,7 @@ export default function NewTournamentPage() {
 
   const addPlayer = () => {
     if (players.length >= MAX_PLAYERS) return;
-    setPlayers([...players, { name: '', lichessUsername: '' }]);
+    setPlayers([...players, '']);
   };
 
   const removePlayer = (index: number) => {
@@ -39,14 +26,8 @@ export default function NewTournamentPage() {
     setPlayers(players.filter((_, i) => i !== index));
   };
 
-  const updatePlayer = (index: number, field: keyof PlayerInput, value: string) => {
-    setPlayers(players.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
-  };
-
-  const selectLichessPlayer = (index: number, lichessPlayer: LichessPlayer) => {
-    setPlayers(players.map((p, i) =>
-      i === index ? { name: lichessPlayer.name, lichessUsername: lichessPlayer.id } : p
-    ));
+  const updatePlayer = (index: number, value: string) => {
+    setPlayers(players.map((p, i) => (i === index ? value : p)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,9 +39,9 @@ export default function NewTournamentPage() {
       return;
     }
 
-    const validPlayers = players.filter(p => p.name.trim() && p.lichessUsername.trim());
+    const validPlayers = players.filter(p => p.trim());
     if (validPlayers.length < 2) {
-      setError('At least 2 players with name and Lichess username are required');
+      setError('At least 2 players are required');
       return;
     }
 
@@ -89,10 +70,7 @@ export default function NewTournamentPage() {
           name: name.trim(),
           type: 'round-robin',
           rounds,
-          players: validPlayers.map(p => ({
-            name: p.name.trim(),
-            lichessUsername: p.lichessUsername.trim(),
-          })),
+          players: validPlayers.map(p => ({ lichessUsername: p.trim() })),
         }),
       });
 
@@ -198,14 +176,13 @@ export default function NewTournamentPage() {
         </div>
 
         <div className="space-y-4">
-          <label className="block font-medium">Players</label>
+          <label className="block font-medium">Players (Lichess usernames)</label>
           <div className="space-y-3">
-            {players.map((player, index) => (
+            {players.map((username, index) => (
               <PlayerInputRow
                 key={index}
-                player={player}
-                onUpdate={(field, value) => updatePlayer(index, field, value)}
-                onSelectLichess={(p) => selectLichessPlayer(index, p)}
+                username={username}
+                onUpdate={(value) => updatePlayer(index, value)}
                 onRemove={() => removePlayer(index)}
                 canRemove={players.length > 2}
               />
@@ -234,20 +211,23 @@ export default function NewTournamentPage() {
   );
 }
 
+interface LichessSuggestion {
+  id: string;
+  name: string;
+}
+
 function PlayerInputRow({
-  player,
+  username,
   onUpdate,
-  onSelectLichess,
   onRemove,
   canRemove,
 }: {
-  player: PlayerInput;
-  onUpdate: (field: keyof PlayerInput, value: string) => void;
-  onSelectLichess: (player: LichessPlayer) => void;
+  username: string;
+  onUpdate: (value: string) => void;
   onRemove: () => void;
   canRemove: boolean;
 }) {
-  const [suggestions, setSuggestions] = useState<LichessPlayer[]>([]);
+  const [suggestions, setSuggestions] = useState<LichessSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -271,8 +251,8 @@ function PlayerInputRow({
     }
   };
 
-  const handleLichessInputChange = (value: string) => {
-    onUpdate('lichessUsername', value);
+  const handleInputChange = (value: string) => {
+    onUpdate(value);
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -300,45 +280,33 @@ function PlayerInputRow({
 
   return (
     <div ref={containerRef} className="flex gap-2 items-start">
-      <div className="flex-1 space-y-2 sm:space-y-0 sm:flex sm:gap-2 relative">
-        <div className="relative w-full sm:flex-1">
-          <input
-            type="text"
-            value={player.lichessUsername}
-            onChange={e => handleLichessInputChange(e.target.value)}
-            onFocus={() => setShowSuggestions(true)}
-            placeholder="Lichess username"
-            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-          />
-          {showSuggestions && (suggestions.length > 0 || loading) && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-              {loading ? (
-                <div className="px-4 py-2 text-zinc-500 text-sm">Searching...</div>
-              ) : (
-                suggestions.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => { onSelectLichess(p); setShowSuggestions(false); setSuggestions([]); }}
-                    className="w-full px-4 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center"
-                  >
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-sm text-zinc-500">@{p.id}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-        <div className="w-full sm:flex-1">
-          <input
-            type="text"
-            value={player.name}
-            onChange={e => onUpdate('name', e.target.value)}
-            placeholder="Display name"
-            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-          />
-        </div>
+      <div className="flex-1 relative">
+        <input
+          type="text"
+          value={username}
+          onChange={e => handleInputChange(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          placeholder="Lichess username"
+          className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
+        />
+        {showSuggestions && (suggestions.length > 0 || loading) && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+            {loading ? (
+              <div className="px-4 py-2 text-zinc-500 text-sm">Searching...</div>
+            ) : (
+              suggestions.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { onUpdate(p.id); setShowSuggestions(false); setSuggestions([]); }}
+                  className="w-full px-4 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {p.name}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
       <button
         type="button"

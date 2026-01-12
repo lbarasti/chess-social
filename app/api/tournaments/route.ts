@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTournaments, createTournament } from '@/app/lib/db';
-
-const LICHESS_HOST = 'https://lichess.org';
+import { LICHESS_HOST } from '@/app/lib/lichess';
 
 async function verifyLichessToken(token: string): Promise<{ id: string; username: string } | null> {
   try {
@@ -59,8 +58,8 @@ export async function POST(request: Request) {
     }
 
     for (const player of players) {
-      if (!player.name || !player.lichessUsername) {
-        return NextResponse.json({ error: 'Each player must have a name and Lichess username' }, { status: 400 });
+      if (!player.lichessUsername) {
+        return NextResponse.json({ error: 'Each player must have a Lichess username' }, { status: 400 });
       }
     }
 

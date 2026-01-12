@@ -1,16 +1,14 @@
 'use client';
 
-import { Match, Player, MatchResult } from '@/app/lib/types';
+import { Match, MatchResult } from '@/app/lib/types';
 import { useState } from 'react';
 
 interface MatchListProps {
   matches: Match[];
-  players: Player[];
   onUpdateMatch: (matchId: string, result: MatchResult, gameLink?: string) => Promise<void>;
 }
 
-export function MatchList({ matches, players, onUpdateMatch }: MatchListProps) {
-  const getPlayerName = (id: string) => players.find(p => p.id === id)?.name || id;
+export function MatchList({ matches, onUpdateMatch }: MatchListProps) {
 
   return (
     <div className="space-y-3">
@@ -18,8 +16,8 @@ export function MatchList({ matches, players, onUpdateMatch }: MatchListProps) {
         <MatchItem 
           key={match.id} 
           match={match} 
-          whiteName={getPlayerName(match.white)}
-          blackName={getPlayerName(match.black)}
+          whiteName={match.white}
+          blackName={match.black}
           onUpdate={onUpdateMatch}
         />
       ))}

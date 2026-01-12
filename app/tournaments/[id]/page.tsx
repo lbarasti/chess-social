@@ -103,7 +103,6 @@ export default function TournamentPage() {
       <section className="space-y-6">
         <h2 className="text-2xl font-bold px-1">Matches</h2>
         <MatchList
-          players={data.players}
           matches={data.matches}
           onUpdateMatch={handleUpdateMatch}
         />

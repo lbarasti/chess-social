@@ -1,9 +1,7 @@
--- Create Players table
+-- Create Players table (stores lichess usernames)
 
 create table if not exists players (
-  id text primary key,
-  name text not null,
-  lichess_url text not null
+  id text primary key
 );
 
 -- Create Tournaments table
@@ -27,11 +25,11 @@ create table if not exists matches (
 );
 
 -- Insert Players (on conflict do nothing to avoid errors if re-run)
-insert into players (id, name, lichess_url) values
-  ('flevour', 'Flevour', 'https://lichess.org/@/Flevour'),
-  ('gso1010', 'gso1010', 'https://lichess.org/@/gso1010'),
-  ('gianmarcosanti', 'Gianmarcosanti', 'https://lichess.org/@/Gianmarcosanti'),
-  ('lbarasti', 'lbarasti', 'https://lichess.org/@/lbarasti')
+insert into players (id) values
+  ('flevour'),
+  ('gso1010'),
+  ('gianmarcosanti'),
+  ('lbarasti')
 on conflict (id) do nothing;
 
 -- Create default tournament and matches (for fresh install)
