@@ -1,7 +1,7 @@
 'use client';
 
 import { Match, MatchResult } from '@/app/lib/types';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface MatchListProps {
   matches: Match[];
@@ -22,7 +22,7 @@ export function MatchList({ matches, currentUserId, onUpdateMatch, onChallenge }
 
         return (
           <MatchItem
-            key={match.id}
+            key={`${match.id}-${match.gameLink ?? ''}`}
             match={match}
             whiteName={match.white}
             blackName={match.black}
@@ -47,11 +47,6 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChal
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [linkInput, setLinkInput] = useState(match.gameLink || '');
-
-  // Sync linkInput when match.gameLink changes externally (e.g., from challenge)
-  useEffect(() => {
-    setLinkInput(match.gameLink || '');
-  }, [match.gameLink]);
 
   const handleResultUpdate = async (result: MatchResult) => {
     // If clicking the active result, clear it (toggle off)

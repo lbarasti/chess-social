@@ -4,24 +4,35 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/components/AuthContext';
+import { FormField, FormSelect, FormInput, ToggleButtonGroup } from '@/app/components/Form';
 import { ChessVariant, TimeControl } from '@/app/lib/types';
 
 // Time control options
-const CLOCK_MINUTES = [1, 2, 3, 5, 10, 15, 30, 45, 60, 90, 120, 180] as const;
-const CLOCK_INCREMENTS = [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60] as const;
-const CORRESPONDENCE_DAYS = [1, 2, 3, 5, 7, 10, 14] as const;
+const CLOCK_MINUTES = [1, 2, 3, 5, 10, 15, 30, 45, 60, 90, 120, 180].map(m => ({ value: m, label: String(m) }));
+const CLOCK_INCREMENTS = [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60].map(i => ({ value: i, label: String(i) }));
+const CORRESPONDENCE_DAYS = [1, 2, 3, 5, 7, 10, 14].map(d => ({ value: d, label: String(d) }));
 
-// Chess variants with display labels
-const VARIANTS: { value: ChessVariant; label: string }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'chess960', label: 'Chess960' },
-  { value: 'crazyhouse', label: 'Crazyhouse' },
-  { value: 'antichess', label: 'Antichess' },
-  { value: 'atomic', label: 'Atomic' },
-  { value: 'horde', label: 'Horde' },
-  { value: 'kingOfTheHill', label: 'King of the Hill' },
-  { value: 'racingKings', label: 'Racing Kings' },
-  { value: 'threeCheck', label: 'Three-check' },
+// Chess variants
+const VARIANTS = [
+  { value: 'standard' as const, label: 'Standard' },
+  { value: 'chess960' as const, label: 'Chess960' },
+  { value: 'crazyhouse' as const, label: 'Crazyhouse' },
+  { value: 'antichess' as const, label: 'Antichess' },
+  { value: 'atomic' as const, label: 'Atomic' },
+  { value: 'horde' as const, label: 'Horde' },
+  { value: 'kingOfTheHill' as const, label: 'King of the Hill' },
+  { value: 'racingKings' as const, label: 'Racing Kings' },
+  { value: 'threeCheck' as const, label: 'Three-check' },
+];
+
+const TIME_CONTROL_TYPES = [
+  { value: 'clock' as const, label: 'Real-time' },
+  { value: 'correspondence' as const, label: 'Correspondence' },
+];
+
+const GAME_TYPES = [
+  { value: false, label: 'Casual' },
+  { value: true, label: 'Rated' },
 ];
 
 export default function NewTournamentPage() {
@@ -116,6 +127,14 @@ export default function NewTournamentPage() {
     }
   };
 
+  const handleTimeControlTypeChange = (type: 'clock' | 'correspondence') => {
+    if (type === 'clock') {
+      setTimeControl({ type: 'clock', limit: 300, increment: 3 });
+    } else {
+      setTimeControl({ type: 'correspondence', days: 3 });
+    }
+  };
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading...</div>;
   }
@@ -158,24 +177,16 @@ export default function NewTournamentPage() {
           </div>
         )}
 
-        <div className="space-y-2">
-          <label htmlFor="name" className="block font-medium">
-            Tournament Name
-          </label>
-          <input
+        <FormField label="Tournament Name" htmlFor="name">
+          <FormInput
             id="name"
-            type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={setName}
             placeholder="e.g. Winter tournament"
-            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
           />
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label htmlFor="type" className="block font-medium">
-            Tournament Type
-          </label>
+        <FormField label="Tournament Type" htmlFor="type" hint="Only round-robin is supported currently.">
           <select
             id="type"
             disabled
@@ -183,13 +194,13 @@ export default function NewTournamentPage() {
           >
             <option value="round-robin">Round Robin</option>
           </select>
-          <p className="text-sm text-zinc-500">Only round-robin is supported currently.</p>
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label htmlFor="rounds" className="block font-medium">
-            Number of Rounds
-          </label>
+        <FormField
+          label="Number of Rounds"
+          htmlFor="rounds"
+          hint="Each player plays every other player this many times (alternating colors)."
+        >
           <input
             id="rounds"
             type="number"
@@ -199,53 +210,24 @@ export default function NewTournamentPage() {
             onChange={e => setRounds(parseInt(e.target.value) || 1)}
             className="w-24 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
           />
-          <p className="text-sm text-zinc-500">
-            Each player plays every other player this many times (alternating colors).
-          </p>
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label htmlFor="variant" className="block font-medium">
-            Variant
-          </label>
-          <select
+        <FormField label="Variant" htmlFor="variant">
+          <FormSelect
             id="variant"
             value={variant}
-            onChange={e => setVariant(e.target.value as ChessVariant)}
-            className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-          >
-            {VARIANTS.map(v => (
-              <option key={v.value} value={v.value}>{v.label}</option>
-            ))}
-          </select>
-        </div>
+            onChange={setVariant}
+            options={VARIANTS}
+          />
+        </FormField>
 
         <div className="space-y-3">
           <label className="block font-medium">Time Control</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setTimeControl({ type: 'clock', limit: 300, increment: 3 })}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                timeControl.type === 'clock'
-                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
-              }`}
-            >
-              Real-time
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeControl({ type: 'correspondence', days: 3 })}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                timeControl.type === 'correspondence'
-                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
-              }`}
-            >
-              Correspondence
-            </button>
-          </div>
+          <ToggleButtonGroup
+            value={timeControl.type as 'clock' | 'correspondence'}
+            onChange={handleTimeControlTypeChange}
+            options={TIME_CONTROL_TYPES}
+          />
 
           {timeControl.type === 'clock' ? (
             <div className="flex gap-4 items-center">
@@ -253,39 +235,23 @@ export default function NewTournamentPage() {
                 <label htmlFor="timeLimit" className="block text-sm text-zinc-500 mb-1">
                   Minutes
                 </label>
-                <select
+                <FormSelect
                   id="timeLimit"
                   value={timeControl.limit / 60}
-                  onChange={e => setTimeControl({
-                    type: 'clock',
-                    limit: parseInt(e.target.value) * 60,
-                    increment: timeControl.increment,
-                  })}
-                  className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-                >
-                  {CLOCK_MINUTES.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={(m) => setTimeControl({ ...timeControl, limit: m * 60 })}
+                  options={CLOCK_MINUTES}
+                />
               </div>
               <div className="flex-1">
                 <label htmlFor="timeIncrement" className="block text-sm text-zinc-500 mb-1">
                   Increment (seconds)
                 </label>
-                <select
+                <FormSelect
                   id="timeIncrement"
                   value={timeControl.increment}
-                  onChange={e => setTimeControl({
-                    type: 'clock',
-                    limit: timeControl.limit,
-                    increment: parseInt(e.target.value),
-                  })}
-                  className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-                >
-                  {CLOCK_INCREMENTS.map(i => (
-                    <option key={i} value={i}>{i}</option>
-                  ))}
-                </select>
+                  onChange={(i) => setTimeControl({ ...timeControl, increment: i })}
+                  options={CLOCK_INCREMENTS}
+                />
               </div>
             </div>
           ) : timeControl.type === 'correspondence' ? (
@@ -293,53 +259,23 @@ export default function NewTournamentPage() {
               <label htmlFor="days" className="block text-sm text-zinc-500 mb-1">
                 Days per move
               </label>
-              <select
+              <FormSelect
                 id="days"
                 value={timeControl.days}
-                onChange={e => setTimeControl({
-                  type: 'correspondence',
-                  days: parseInt(e.target.value) as 1 | 2 | 3 | 5 | 7 | 10 | 14,
-                })}
-                className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-400"
-              >
-                {CORRESPONDENCE_DAYS.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+                onChange={(d) => setTimeControl({ type: 'correspondence', days: d as 1 | 2 | 3 | 5 | 7 | 10 | 14 })}
+                options={CORRESPONDENCE_DAYS}
+              />
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-2">
-          <label className="block font-medium">Game Type</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setRated(false)}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                !rated
-                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
-              }`}
-            >
-              Casual
-            </button>
-            <button
-              type="button"
-              onClick={() => setRated(true)}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                rated
-                  ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400'
-              }`}
-            >
-              Rated
-            </button>
-          </div>
-          <p className="text-sm text-zinc-500">
-            Rated games affect players&apos; Lichess ratings.
-          </p>
-        </div>
+        <FormField label="Game Type" hint="Rated games affect players' Lichess ratings.">
+          <ToggleButtonGroup
+            value={rated}
+            onChange={setRated}
+            options={GAME_TYPES}
+          />
+        </FormField>
 
         <div className="space-y-4">
           <label className="block font-medium">Players (Lichess usernames)</label>
