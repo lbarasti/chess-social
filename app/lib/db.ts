@@ -282,6 +282,30 @@ export async function updateMatch(
   } as Match;
 }
 
+export async function isUserInMatchTournament(matchId: string, userId: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  // Get the match to find its tournament
+  const { data: match, error: matchError } = await supabase
+    .from('matches')
+    .select('tournament_id')
+    .eq('id', matchId)
+    .single();
+
+  if (matchError || !match) return false;
+
+  // Get the tournament to check player_ids
+  const { data: tournament, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('player_ids')
+    .eq('id', match.tournament_id)
+    .single();
+
+  if (tournamentError || !tournament) return false;
+
+  return tournament.player_ids?.includes(userId) ?? false;
+}
+
 export async function deleteTournament(id: string, creatorId: string): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'Database not available' };

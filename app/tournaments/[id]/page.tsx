@@ -37,15 +37,16 @@ export default function TournamentPage() {
     fetchData();
   }, [id]);
 
-  const { upcomingMatches, completedMatches, isTournamentComplete } = useMemo(() => {
-    if (!data) return { upcomingMatches: [], completedMatches: [], isTournamentComplete: false };
+  const { upcomingMatches, completedMatches, isTournamentComplete, canEdit } = useMemo(() => {
+    if (!data) return { upcomingMatches: [], completedMatches: [], isTournamentComplete: false, canEdit: false };
 
     const upcoming = data.matches.filter(m => !m.result);
     const completed = data.matches.filter(m => m.result);
     const isComplete = data.matches.length > 0 && upcoming.length === 0;
+    const isPlayer = user?.id && data.players.some(p => p.id.toLowerCase() === user.id.toLowerCase());
 
-    return { upcomingMatches: upcoming, completedMatches: completed, isTournamentComplete: isComplete };
-  }, [data]);
+    return { upcomingMatches: upcoming, completedMatches: completed, isTournamentComplete: isComplete, canEdit: !!isPlayer };
+  }, [data, user]);
 
   const handleUpdateMatch = async (matchId: string, result: MatchResult, gameLink?: string) => {
     // Optimistic update
@@ -59,9 +60,15 @@ export default function TournamentPage() {
     }
 
     try {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/matches', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ id: matchId, result, gameLink }),
       });
 
@@ -188,6 +195,7 @@ export default function TournamentPage() {
             <MatchList
               matches={upcomingMatches}
               currentUserId={user?.id}
+              canEdit={canEdit}
               onUpdateMatch={handleUpdateMatch}
               onChallenge={handleChallenge}
             />
@@ -200,6 +208,7 @@ export default function TournamentPage() {
             <MatchList
               matches={completedMatches}
               currentUserId={user?.id}
+              canEdit={canEdit}
               onUpdateMatch={handleUpdateMatch}
               onChallenge={handleChallenge}
             />

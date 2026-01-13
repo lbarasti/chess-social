@@ -7,11 +7,12 @@ import { Swords, Pencil } from 'lucide-react';
 interface MatchListProps {
   matches: Match[];
   currentUserId?: string;
+  canEdit?: boolean;
   onUpdateMatch: (matchId: string, result: MatchResult, gameLink?: string) => Promise<void>;
   onChallenge?: (matchId: string, opponentId: string, userColor: 'white' | 'black') => void;
 }
 
-export function MatchList({ matches, currentUserId, onUpdateMatch, onChallenge }: MatchListProps) {
+export function MatchList({ matches, currentUserId, canEdit, onUpdateMatch, onChallenge }: MatchListProps) {
   return (
     <div className="space-y-3">
       {matches.map(match => {
@@ -28,6 +29,7 @@ export function MatchList({ matches, currentUserId, onUpdateMatch, onChallenge }
             whiteName={match.white}
             blackName={match.black}
             onUpdate={onUpdateMatch}
+            canEdit={canEdit}
             canChallenge={!!isUserMatch && !match.result && !!onChallenge}
             onChallenge={opponentId ? () => onChallenge?.(match.id, opponentId, userColor) : undefined}
           />
@@ -37,11 +39,12 @@ export function MatchList({ matches, currentUserId, onUpdateMatch, onChallenge }
   );
 }
 
-function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChallenge }: {
+function MatchItem({ match, whiteName, blackName, onUpdate, canEdit, canChallenge, onChallenge }: {
   match: Match,
   whiteName: string,
   blackName: string,
   onUpdate: (id: string, result: MatchResult, gameLink?: string) => Promise<void>,
+  canEdit?: boolean,
   canChallenge?: boolean,
   onChallenge?: () => void,
 }) {
@@ -154,13 +157,15 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canChallenge, onChal
             ) : (
               <span className="italic text-zinc-300 dark:text-zinc-700">No game link</span>
             )}
-            <button
-              onClick={() => setIsEditingLink(true)}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              title="Edit game link"
-            >
-              <Pencil size={14} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setIsEditingLink(true)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                title="Edit game link"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
           </div>
         )}
       </div>

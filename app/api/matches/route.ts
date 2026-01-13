@@ -1,28 +1,47 @@
 import { NextResponse } from 'next/server';
-import { updateMatch } from '@/app/lib/db';
+import { updateMatch, isUserInMatchTournament } from '@/app/lib/db';
+import { LICHESS_HOST } from '@/app/lib/lichess';
+
+async function verifyLichessToken(token: string): Promise<{ id: string; username: string } | null> {
+  try {
+    const res = await fetch(`${LICHESS_HOST}/api/account`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { id: data.id, username: data.username };
+  } catch {
+    return null;
+  }
+}
 
 export async function PUT(request: Request) {
   try {
+    // Verify authentication
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.slice(7);
+    const lichessUser = await verifyLichessToken(token);
+    if (!lichessUser) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, result, gameLink } = body;
-    
+
     if (!id) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     }
-    
-    // result can be null, so check for undefined if we are just updating link? 
-    // The previous logic required result. Let's make it flexible or require at least one update.
-    // For now, let's stick to the existing contract: result is primary, gameLink is optional.
-    
-    // Actually, user might want to ONLY update the link. 
-    // But the current updateMatch signature takes result as 2nd arg.
-    // Let's pass the result if provided, or read current match first?
-    // To keep it simple and efficient, the frontend should send the current result if it hasn't changed.
-    
-    // Wait, the frontend sends everything usually.
-    // Let's allow partial updates in updateMatch if needed, but for now strict typing.
-    // Let's assume frontend sends result even if unchanged.
-    
+
+    // Verify user is a player in the tournament
+    const isAuthorized = await isUserInMatchTournament(id, lichessUser.id);
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Not authorized to update this match' }, { status: 403 });
+    }
+
     if (result === undefined && gameLink === undefined) {
        return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     }
