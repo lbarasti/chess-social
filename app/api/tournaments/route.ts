@@ -15,8 +15,13 @@ async function verifyLichessToken(token: string): Promise<{ id: string; username
   }
 }
 
-export async function GET() {
-  const tournaments = await getTournaments();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const userId = searchParams.get('userId') || undefined;
+
+  const tournaments = await getTournaments({ limit, offset, userId });
   return NextResponse.json(tournaments);
 }
 

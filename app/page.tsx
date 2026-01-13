@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Trash2, Trophy } from 'lucide-react';
 import { Tournament } from '@/app/lib/types';
 import { useAuth } from '@/app/components/AuthContext';
+
+const PAGE_SIZE = 10;
 
 function TournamentCard({
   tournament,
@@ -70,84 +72,141 @@ function TournamentCard({
   );
 }
 
-function TournamentList({
-  tournaments,
-  title,
-  userId,
-  deleting,
-  onDelete,
-}: {
-  tournaments: Tournament[];
-  title: string;
-  userId?: string;
-  deleting: string | null;
-  onDelete: (e: React.MouseEvent, tournamentId: string, tournamentName: string) => void;
-}) {
-  if (tournaments.length === 0) {
-    return null;
-  }
-
+function LoadMoreButton({ onClick, loading }: { onClick: () => void; loading: boolean }) {
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 px-1">{title}</h3>
-      {tournaments.map(tournament => (
-        <TournamentCard
-          key={tournament.id}
-          tournament={tournament}
-          canDelete={userId === tournament.creatorId}
-          deleting={deleting === tournament.id}
-          onDelete={(e) => onDelete(e, tournament.id, tournament.name)}
-        />
-      ))}
-    </div>
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="w-full py-2 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
+    >
+      {loading ? 'Loading...' : 'Load more'}
+    </button>
   );
 }
 
 export default function Home() {
-  const { user, getAccessToken } = useAuth();
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading, getAccessToken } = useAuth();
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // For logged-in users: separate lists
+  const [myTournaments, setMyTournaments] = useState<Tournament[]>([]);
+  const [otherTournaments, setOtherTournaments] = useState<Tournament[]>([]);
+  const [myHasMore, setMyHasMore] = useState(true);
+  const [otherHasMore, setOtherHasMore] = useState(true);
+  const [myLoading, setMyLoading] = useState(false);
+  const [otherLoading, setOtherLoading] = useState(false);
+  const [otherOffset, setOtherOffset] = useState(0);
+
+  // For non-logged-in users: single list
+  const [allTournaments, setAllTournaments] = useState<Tournament[]>([]);
+  const [allHasMore, setAllHasMore] = useState(true);
+  const [allLoading, setAllLoading] = useState(false);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const fetchTournaments = useCallback(async (
+    params: { userId?: string; offset: number }
+  ): Promise<Tournament[]> => {
+    const searchParams = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String(params.offset),
+    });
+    if (params.userId) searchParams.set('userId', params.userId);
+
+    const res = await fetch(`/api/tournaments?${searchParams}`);
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+  }, []);
+
+  const isUserTournament = useCallback((tournament: Tournament, userId: string) => {
+    const id = userId.toLowerCase();
+    return tournament.creatorId?.toLowerCase() === id ||
+      tournament.playerIds?.some(p => p.toLowerCase() === id);
+  }, []);
+
+  // Initial load when auth state is known
   useEffect(() => {
-    const fetchTournaments = async () => {
+    if (authLoading) return;
+
+    const loadInitial = async () => {
+      setInitialLoading(true);
       try {
-        const res = await fetch('/api/tournaments');
-        if (!res.ok) throw new Error('Failed to fetch');
-        const json = await res.json();
-        setTournaments(json);
+        if (user) {
+          const [my, all] = await Promise.all([
+            fetchTournaments({ userId: user.id, offset: 0 }),
+            fetchTournaments({ offset: 0 }),
+          ]);
+          setMyTournaments(my);
+          const other = all.filter(t => !isUserTournament(t, user.id));
+          setOtherTournaments(other);
+          setMyHasMore(my.length === PAGE_SIZE);
+          setOtherHasMore(all.length === PAGE_SIZE);
+        } else {
+          const all = await fetchTournaments({ offset: 0 });
+          setAllTournaments(all);
+          setAllHasMore(all.length === PAGE_SIZE);
+        }
       } catch (error) {
         console.error('Failed to fetch tournaments', error);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
-    fetchTournaments();
-  }, []);
 
-  const { myTournaments, otherTournaments } = useMemo(() => {
-    if (!user) {
-      return { myTournaments: [], otherTournaments: tournaments };
+    loadInitial();
+  }, [authLoading, user, fetchTournaments, isUserTournament]);
+
+  const loadMoreMy = async () => {
+    if (!user || myLoading) return;
+    setMyLoading(true);
+    try {
+      const more = await fetchTournaments({ userId: user.id, offset: myTournaments.length });
+      setMyTournaments([...myTournaments, ...more]);
+      setMyHasMore(more.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Failed to load more', error);
+    } finally {
+      setMyLoading(false);
     }
+  };
 
-    const userId = user.id.toLowerCase();
-    const mine: Tournament[] = [];
-    const others: Tournament[] = [];
-
-    for (const t of tournaments) {
-      const isCreator = t.creatorId?.toLowerCase() === userId;
-      const isPlayer = t.playerIds?.some(id => id.toLowerCase() === userId);
-      if (isCreator || isPlayer) {
-        mine.push(t);
-      } else {
-        others.push(t);
-      }
+  const loadMoreOther = async () => {
+    if (!user || otherLoading) return;
+    setOtherLoading(true);
+    try {
+      const newOffset = otherOffset + PAGE_SIZE;
+      const more = await fetchTournaments({ offset: newOffset });
+      const filtered = more.filter(t => !isUserTournament(t, user.id));
+      setOtherTournaments([...otherTournaments, ...filtered]);
+      setOtherOffset(newOffset);
+      setOtherHasMore(more.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Failed to load more', error);
+    } finally {
+      setOtherLoading(false);
     }
+  };
 
-    return { myTournaments: mine, otherTournaments: others };
-  }, [user, tournaments]);
+  const loadMoreAll = async () => {
+    if (allLoading) return;
+    setAllLoading(true);
+    try {
+      const more = await fetchTournaments({ offset: allTournaments.length });
+      setAllTournaments([...allTournaments, ...more]);
+      setAllHasMore(more.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Failed to load more', error);
+    } finally {
+      setAllLoading(false);
+    }
+  };
 
-  const handleDelete = async (e: React.MouseEvent, tournamentId: string, tournamentName: string) => {
+  const handleDelete = async (
+    e: React.MouseEvent,
+    tournamentId: string,
+    tournamentName: string,
+    listType: 'my' | 'other' | 'all'
+  ) => {
     e.stopPropagation();
 
     if (!confirm(`Are you sure you want to delete "${tournamentName}"? This cannot be undone.`)) {
@@ -172,7 +231,13 @@ export default function Home() {
         throw new Error(data.error || 'Failed to delete tournament');
       }
 
-      setTournaments(tournaments.filter(t => t.id !== tournamentId));
+      if (listType === 'my') {
+        setMyTournaments(myTournaments.filter(t => t.id !== tournamentId));
+      } else if (listType === 'other') {
+        setOtherTournaments(otherTournaments.filter(t => t.id !== tournamentId));
+      } else {
+        setAllTournaments(allTournaments.filter(t => t.id !== tournamentId));
+      }
     } catch (error) {
       console.error('Failed to delete tournament', error);
       alert(error instanceof Error ? error.message : 'Failed to delete tournament');
@@ -181,7 +246,7 @@ export default function Home() {
     }
   };
 
-  if (loading) {
+  if (authLoading || initialLoading) {
     return <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading tournaments...</div>;
   }
 
@@ -200,39 +265,64 @@ export default function Home() {
           )}
         </div>
 
-        {tournaments.length === 0 ? (
-          <p className="text-zinc-500 text-center py-8">No tournaments yet.</p>
-        ) : user ? (
+        {user ? (
           <div className="space-y-6">
-            <TournamentList
-              tournaments={myTournaments}
-              title="My tournaments"
-              userId={user.id}
-              deleting={deleting}
-              onDelete={handleDelete}
-            />
-            <TournamentList
-              tournaments={otherTournaments}
-              title="Other tournaments"
-              userId={user.id}
-              deleting={deleting}
-              onDelete={handleDelete}
-            />
+            {/* My tournaments */}
+            {myTournaments.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 px-1">My tournaments</h3>
+                {myTournaments.map(tournament => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    canDelete={user.id === tournament.creatorId}
+                    deleting={deleting === tournament.id}
+                    onDelete={(e) => handleDelete(e, tournament.id, tournament.name, 'my')}
+                  />
+                ))}
+                {myHasMore && <LoadMoreButton onClick={loadMoreMy} loading={myLoading} />}
+              </div>
+            )}
+
+            {/* Other tournaments */}
+            {otherTournaments.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-zinc-600 dark:text-zinc-400 px-1">Other tournaments</h3>
+                {otherTournaments.map(tournament => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    canDelete={user.id === tournament.creatorId}
+                    deleting={deleting === tournament.id}
+                    onDelete={(e) => handleDelete(e, tournament.id, tournament.name, 'other')}
+                  />
+                ))}
+                {otherHasMore && <LoadMoreButton onClick={loadMoreOther} loading={otherLoading} />}
+              </div>
+            )}
+
             {myTournaments.length === 0 && otherTournaments.length === 0 && (
               <p className="text-zinc-500 text-center py-8">No tournaments yet.</p>
             )}
           </div>
         ) : (
           <div className="space-y-3">
-            {tournaments.map(tournament => (
-              <TournamentCard
-                key={tournament.id}
-                tournament={tournament}
-                canDelete={false}
-                deleting={false}
-                onDelete={() => {}}
-              />
-            ))}
+            {allTournaments.length === 0 ? (
+              <p className="text-zinc-500 text-center py-8">No tournaments yet.</p>
+            ) : (
+              <>
+                {allTournaments.map(tournament => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    canDelete={false}
+                    deleting={false}
+                    onDelete={() => {}}
+                  />
+                ))}
+                {allHasMore && <LoadMoreButton onClick={loadMoreAll} loading={allLoading} />}
+              </>
+            )}
           </div>
         )}
       </section>

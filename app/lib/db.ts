@@ -34,16 +34,32 @@ export const supabase = (typeof window === 'undefined' && supabaseUrl && supabas
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-export async function getTournaments(): Promise<Tournament[]> {
+export type GetTournamentsOptions = {
+  limit?: number;
+  offset?: number;
+  userId?: string; // Filter to tournaments where user is creator or player
+};
+
+export async function getTournaments(options: GetTournamentsOptions = {}): Promise<Tournament[]> {
   if (!supabase) {
     console.error('Supabase credentials missing on server');
     return [];
   }
 
-  const { data, error } = await supabase
+  const { limit = 10, offset = 0, userId } = options;
+
+  let query = supabase
     .from('tournaments')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (userId) {
+    // Tournaments where user is creator OR in player_ids array
+    query = query.or(`creator_id.eq.${userId},player_ids.cs.{${userId}}`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching tournaments:', error);
