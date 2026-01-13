@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Player, Match, Tournament, TournamentWithMatches, MatchResult, ChallengeSettings } from './types';
+import { isValidLichessGameLink } from './lichess';
 
 // Database row types (snake_case)
 type DbTournament = {
@@ -124,14 +125,33 @@ export async function getTournament(id: string): Promise<TournamentWithMatches |
     id: p.id,
   }));
 
-  const mappedMatches: Match[] = (matches || []).map((m: DbMatch) => ({
-    id: m.id,
-    tournamentId: m.tournament_id,
-    white: m.white,
-    black: m.black,
-    result: m.result,
-    gameLink: m.game_link ?? undefined,
-  }));
+  // Validate game links and collect invalid ones for cleanup
+  const invalidLinkMatchIds: string[] = [];
+  const mappedMatches: Match[] = (matches || []).map((m: DbMatch) => {
+    const hasInvalidLink = m.game_link && !isValidLichessGameLink(m.game_link);
+    if (hasInvalidLink) {
+      invalidLinkMatchIds.push(m.id);
+    }
+    return {
+      id: m.id,
+      tournamentId: m.tournament_id,
+      white: m.white,
+      black: m.black,
+      result: m.result,
+      gameLink: hasInvalidLink ? undefined : (m.game_link ?? undefined),
+    };
+  });
+
+  // Reset invalid links in the database (fire and forget)
+  if (invalidLinkMatchIds.length > 0 && supabase) {
+    supabase
+      .from('matches')
+      .update({ game_link: null })
+      .in('id', invalidLinkMatchIds)
+      .then(({ error }) => {
+        if (error) console.error('Error resetting invalid game links:', error);
+      });
+  }
 
   return {
     id: tournament.id,

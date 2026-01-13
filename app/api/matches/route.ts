@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { updateMatch, isUserInMatchTournament } from '@/app/lib/db';
-import { LICHESS_HOST } from '@/app/lib/lichess';
+import { LICHESS_HOST, isValidLichessGameLink } from '@/app/lib/lichess';
 
 async function verifyLichessToken(token: string): Promise<{ id: string; username: string } | null> {
   try {
@@ -44,6 +44,11 @@ export async function PUT(request: Request) {
 
     if (result === undefined && gameLink === undefined) {
        return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+    }
+
+    // Validate game link if provided
+    if (gameLink !== undefined && !isValidLichessGameLink(gameLink)) {
+      return NextResponse.json({ error: 'Invalid Lichess game link' }, { status: 400 });
     }
 
     const updatedMatch = await updateMatch(id, result, gameLink);

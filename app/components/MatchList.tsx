@@ -1,8 +1,9 @@
 'use client';
 
 import { Match, MatchResult } from '@/app/lib/types';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Swords, Pencil } from 'lucide-react';
+import { isValidLichessGameLink } from '@/app/lib/lichess';
 
 interface MatchListProps {
   matches: Match[];
@@ -51,6 +52,7 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canEdit, canChalleng
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [linkInput, setLinkInput] = useState(match.gameLink || '');
+  const isLinkValid = useMemo(() => isValidLichessGameLink(linkInput), [linkInput]);
 
   const handleResultUpdate = async (result: MatchResult) => {
     // If clicking the active result, clear it (toggle off)
@@ -111,28 +113,39 @@ function MatchItem({ match, whiteName, blackName, onUpdate, canEdit, canChalleng
       {/* Footer: Game Link */}
       <div className="px-4 pb-3 pt-0 flex justify-center text-xs">
         {isEditingLink ? (
-          <div className="flex gap-2 w-full max-w-sm items-center">
-            <input
-              type="text"
-              value={linkInput}
-              onChange={(e) => setLinkInput(e.target.value)}
-              placeholder="Paste Lichess game URL..."
-              className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-              autoFocus
-            />
-            <button 
-              onClick={handleLinkSave}
-              disabled={isUpdating}
-              className="text-green-600 hover:text-green-700 dark:text-green-500 font-medium"
-            >
-              Save
-            </button>
-            <button 
-              onClick={handleCancelLink}
-              className="text-zinc-400 hover:text-zinc-500"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-col gap-1 w-full max-w-sm">
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={linkInput}
+                onChange={(e) => setLinkInput(e.target.value)}
+                placeholder="Paste Lichess game URL..."
+                className={`flex-1 bg-zinc-50 dark:bg-zinc-800 border rounded px-2 py-1 focus:outline-none focus:ring-1 ${
+                  isLinkValid
+                    ? 'border-zinc-200 dark:border-zinc-700 focus:ring-zinc-400'
+                    : 'border-red-400 dark:border-red-600 focus:ring-red-400'
+                }`}
+                autoFocus
+              />
+              <button
+                onClick={handleLinkSave}
+                disabled={isUpdating || !isLinkValid}
+                className="text-green-600 hover:text-green-700 dark:text-green-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancelLink}
+                className="text-zinc-400 hover:text-zinc-500"
+              >
+                Cancel
+              </button>
+            </div>
+            {!isLinkValid && (
+              <span className="text-red-500 dark:text-red-400 text-xs">
+                Must be a valid Lichess game URL (e.g., https://lichess.org/abcd1234)
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex gap-2 items-center text-zinc-400">
